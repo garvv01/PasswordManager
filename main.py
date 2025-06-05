@@ -2,6 +2,7 @@ from os import write
 from tkinter import *
 from tkinter import messagebox
 from random import choice, randint, shuffle
+import json
 
 from pandas.core.computation.align import align_terms
 
@@ -24,16 +25,43 @@ def add():
     website_name = website_entry.get()
     email_name = email_entry.get()
     password_name = password_entry.get()
+    new_data = {
+        website_name:{
+            "Email": email_name,
+            "Password": password_name
+        }
+    }
     if len(website_name)==0 or len(email_name)==0 or len(password_name)==0:
         warning_msg = messagebox.showwarning(title="Oops", message="Please don't leave any fields empty!")
     else:
-        is_ok = messagebox.askokcancel(title=website_name, message=f"These are the details entered: \nEmail: {email_name}\nPassword: {password_name}\nIs it okay to save?")
-        if is_ok:
-            with open("data.txt", "a") as file:
-                file.write(f"{website_name} | {email_name} | {password_name}\n")
+        try:
+            with open("data.json", "r") as file:
+                data = json.load(file)
+        except (FileNotFoundError, json.JSONDecodeError):
+            data ={}
+        data.update(new_data)
+
+        with open("data.json", "w") as file:
+            json.dump(data, file, indent=4)
             website_entry.delete(0, END)
             email_entry.delete(0, END)
             password_entry.delete(0, END)
+
+def find_password():
+    try:
+        present=0
+        with open("data.json", "r") as file:
+            website_name = website_entry.get()
+            data = json.load(file)
+            for key in data:
+                if key==website_name:
+                    messagebox.showinfo(title=website_name, message= f"Email: {data[website_name]["Email"]}\nPassword: {data[website_name]["Password"]}")
+                    present=1
+            if present==0:
+                messagebox.showwarning(title="Oops", message="No details for the website exists.")
+
+    except (FileNotFoundError, json.JSONDecodeError):
+        messagebox.showwarning(title="Oops", message="No Data File Found.")
 
 window = Tk()
 window.title("Password Manager")
@@ -47,9 +75,12 @@ canvas.grid(column=1, row=0)
 website_label = Label(text="Website:")
 website_label.grid(column=0, row=1)
 
-website_entry = Entry(width=35)
-website_entry.grid(row=1, column=1, columnspan=2)
+website_entry = Entry(width=20)
+website_entry.grid(row=1, column=1)
 website_entry.focus()
+
+search_button = Button(text="Search", width=14, command=find_password)
+search_button.grid(column=2, row=1)
 
 email_label = Label(text="Email/Username:")
 email_label.grid(column=0, row=2)
